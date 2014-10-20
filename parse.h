@@ -17,6 +17,6 @@ enum parse_tx_state {
     P_TX_LOCKTIME
 };
 
-void parse(void);
+void parse(int blkfd, off_t sz);
 
 #endif

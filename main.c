@@ -17,6 +17,7 @@ main(int argc, char *argv[])
 {
     DIR *datadir = NULL;
     struct dirent *dp = NULL;
+    struct stat sb;
     int fd;
     int ret = 0;
 
@@ -39,7 +40,9 @@ main(int argc, char *argv[])
                 
                 /* 
                  * NOTE: We are not bothering to sort by filename because we
-                 * assume the blockchain files have ascending inode numbers
+                 * assume the blockchain files have ascending inode numbers due
+                 * to the way they were created. Other sources may require more
+                 * sorting.
                  */
                 /* printf("%d\n", dp->d_ino); */
 
@@ -47,7 +50,13 @@ main(int argc, char *argv[])
                 if (fd < 0) {
                     perror("open");
                 } else {
-                    parse(fd);
+                    ret = fstat(fd, &sb);
+                    if (ret < 0) {
+                        perror("stat");
+                    } else {
+                        printf("%s\n", dp->d_name);
+                        parse(fd, sb.st_size);
+                    }
                     close(fd);
                 }
             }
