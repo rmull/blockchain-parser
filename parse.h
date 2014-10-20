@@ -1,5 +1,8 @@
-#ifndef FORMAT_H_
-#define FORMAT_H_
+#ifndef PARSE_H_
+#define PARSE_H_
+
+#define PAGESZ  4096
+#define MMAP
 
 enum parse_msg_state {
     P_MSG_MAGIC,
