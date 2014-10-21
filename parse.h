@@ -1,14 +1,17 @@
 #ifndef PARSE_H_
 #define PARSE_H_
 
-#define PAGESZ  4096
-#define MMAP
-
-enum parse_msg_state {
-    P_MSG_MAGIC,
-    P_MSG_COMMAND,
-    P_MSG_PAYLOAD_LEN,
-    P_MSG_PAYLOAD_SUM
+enum parse_blk_state {
+    P_BLK_MAGIC,
+    P_BLK_SZ,
+    P_BLK_VERSION,
+    P_BLK_PREV,
+    P_BLK_MERKLE,
+    P_BLK_TIME,
+    P_BLK_DIFFICULTY,
+    P_BLK_NONCE,
+    P_BLK_TXCNT,
+    P_BLK_TX
 };
 
 enum parse_tx_state {

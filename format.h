@@ -10,16 +10,34 @@
  * https://en.bitcoin.it/wiki/Protocol_specification#block
  */
 
-#define MAGIC_MAIN      0xBEF9D9B4
-#define MAGIC_TESTNET   0xBFFADAB5
-#define MAGIC_TESTNET3  0x110B079A
-#define MAGIC_NAMECOIN  0xBEF9FEB4
+#define MAGIC_MAIN      0xD9B4BEF9
+#define MAGIC_TESTNET   0xDAB5BFFA
+#define MAGIC_TESTNET3  0x0709110B
+#define MAGIC_NAMECOIN  0xFEB4BEF9
+
+/* Helper enum for keeping track of which network a msg came from */
+enum magic_net {
+    MAGIC_NET_NONE,
+    MAGIC_NET_MAIN,
+    MAGIC_NET_TESTNET,
+    MAGIC_NET_TESTNET3,
+    MAGIC_NET_NAMECOIN
+};
+
+#define CMD_LEN         12
+#define MAGIC_LEN       4
+#define BLKSZ_LEN       4
+#define VERSION_LEN     4
+#define HASH_LEN        32
+#define TIME_LEN        4
+#define DIFFICULTY_LEN  4
+#define NONCE_LEN       4
 
 /* Describes an outpoint from a bitcoin transaction */
 struct outpoint {
 
     /* The hash of the referenced transaction */
-    uint8_t hash[32];
+    uint8_t hash[HASH_LEN];
 
     /* The index of the specific output in the transaction. First is 0, etc */
     uint32_t index;
@@ -102,7 +120,7 @@ struct msg {
      * ASCII string identifying the packet content, NULL padded (non-NULL
      * padding results in packet rejected)
      */
-    char command[12];
+    char command[CMD_LEN];
 
     /* Length of payload in bytes */
     uint32_t length;
@@ -117,23 +135,29 @@ struct msg {
 /* Format for a block in a bitcoin blockchain */
 struct block {
 
+    /* Magic number */
+    uint32_t magic;
+
+    /* Length of the entire block */
+    uint32_t size;
+
     /* Block version info based on software version that created this block */
     uint32_t version;
 
     /* Hash value of the previous block this block references */
-    uint8_t prev_block[32];
+    uint8_t prev_block[HASH_LEN];
 
     /* 
      * Reference to a Merkle tree collection (hash of all transactions related
      * to this block) 
      */
-    uint8_t merkle_root[32];
+    uint8_t merkle_root[HASH_LEN];
 
-    /* Unix timestamp for when this block was created */
-    uint32_t timestamp;   /* 32-bit Unix time_t */
+    /* Unix timestamp (32-bit) for when this block was created */
+    uint32_t time;
 
     /* Calculated difficulty target being used for this block */
-    uint32_t bits;
+    uint32_t difficulty;
 
     /* 
      * Nonce used to generate this block to allow variations of the header and
@@ -147,7 +171,7 @@ struct block {
     uint8_t txn_cnt[VAR_INT];
 
     /* Transactions */
-    struct tx txns;
+    struct tx *txns;
 
 };
     
