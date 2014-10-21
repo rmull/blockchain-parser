@@ -8,6 +8,7 @@
 /* 
  * All information was found at
  * https://en.bitcoin.it/wiki/Protocol_specification#block
+ * https://2.bp.blogspot.com/-DaJcdsyqQSs/UsiTXNHP-0I/AAAAAAAATC0/kiFRowh-J18/s1600/blockchain.png
  */
 
 #define MAGIC_MAIN      0xD9B4BEF9
@@ -157,7 +158,7 @@ struct block {
     uint32_t time;
 
     /* Calculated difficulty target being used for this block */
-    uint32_t difficulty;
+    uint32_t bits;
 
     /* 
      * Nonce used to generate this block to allow variations of the header and
@@ -168,10 +169,10 @@ struct block {
     /* 
      * Number of transaction entries
      */
-    uint8_t txn_cnt[VAR_INT];
+    uint64_t tx_cnt;
 
     /* Transactions */
-    struct tx *txns;
+    struct tx *tx_list;
 
 };
     

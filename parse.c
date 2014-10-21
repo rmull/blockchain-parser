@@ -33,11 +33,35 @@ parse_is_magic(uint32_t m)
     return mn;
 }
 
+uint64_t
+parse_varint(uint8_t *p)
+{
+    uint64_t ret;
+    uint8_t varint = *p;
+
+    p += 1;
+
+    if (varint < VAR_INT_2BYTE) {
+        ret = (uint64_t)varint;
+    } else if (varint == VAR_INT_2BYTE) {
+        ret = (uint64_t)( *(uint16_t *)p );
+        p += 2;
+    } else if (varint == VAR_INT_4BYTE) {
+        ret = (uint64_t)( *(uint32_t *)p );
+        p += 4;
+    } else if (varint == VAR_INT_8BYTE) {
+        ret = (uint64_t)( *(uint64_t *)p );
+        p += 8;
+    }
+
+    return ret;
+}
+
 void
 parse_block_print(struct block *b)
 {
     time_t t = b->time;
-    struct tm *tm = localtime(&t);
+    struct tm *tm = gmtime(&t);
     char timestr[32];
     uint8_t i;
     
@@ -48,26 +72,28 @@ parse_block_print(struct block *b)
     printf("version: %d\n", b->version);
     printf("prev block: ");
     for (i=0; i<HASH_LEN; i++) {
-        printf("%02X", b->prev_block[i]);
+        printf("%02X", b->prev_block[i]);   /* TODO: Endianness? */
     }
     printf("\n");
     printf("merkle root: ");
     for (i=0; i<HASH_LEN; i++) {
-        printf("%02X", b->merkle_root[i]);
+        printf("%02X", b->merkle_root[i]);  /* TODO: Endianness? */
     }
     printf("\n");
     printf("time: %s\n", timestr);
-    printf("difficulty: %d\n", b->difficulty);
-    printf("nonce: %ud\n", b->nonce);
+    printf("bits: %d\n", b->bits);
+    printf("nonce: %u\n", b->nonce);
+    printf("tx count: %lu\n", b->tx_cnt);
 }
 
 void
 parse(int blkfd, off_t sz)
 {
     struct block b;
+    uint64_t blki;
     uint8_t *blk;
     uint8_t *p;
-    uint32_t i = 0;
+    uint8_t varint;
 
     /* Map the input file */
     blk = (uint8_t *)mmap(NULL, sz, PROT_READ, MAP_PRIVATE, blkfd, 0);
@@ -75,7 +101,10 @@ parse(int blkfd, off_t sz)
     /* Initialize our seek pointer */
     p = blk;
     
-    /* Loop through the bytes in the input file */
+    /* 
+     * Loop through the input bytes - this uses states in case we process a
+     * stream with incomplete blocks
+     */
     while (p < (blk+sz)) {
 
         /* Look for different patterns depending on our state */
@@ -132,7 +161,7 @@ parse(int blkfd, off_t sz)
             break;
 
         case P_BLK_DIFFICULTY:
-            b.difficulty = *(uint32_t *)p;
+            b.bits = *(uint32_t *)p;
             p += DIFFICULTY_LEN;
             p_blk_s = P_BLK_NONCE;
             break;
@@ -144,14 +173,34 @@ parse(int blkfd, off_t sz)
             break;
 
         case P_BLK_TXCNT:
-            /* TODO: Handle the VAR_INT here */
-            printf("txcnt: %d\n", *p);
 
+            varint = *p;
+            p += 1;
+
+            if (varint < VAR_INT_2BYTE) {
+                b.tx_cnt = varint;
+            } else if (varint == VAR_INT_2BYTE) {
+                b.tx_cnt = (uint64_t)( *(uint16_t *)p );
+                p += 2;
+            } else if (varint == VAR_INT_4BYTE) {
+                b.tx_cnt = (uint64_t)( *(uint32_t *)p );
+                p += 4;
+            } else if (varint == VAR_INT_8BYTE) {
+                b.tx_cnt = (uint64_t)( *(uint64_t *)p );
+                p += 8;
+            }
+            //b.tx_cnt = parse_varint(p);
+
+            p_tx_s = P_TX_VERSION;
             p_blk_s = P_BLK_TX;
+
             break;
 
         case P_BLK_TX:
             /* TODO: Parse the tx here */
+            //for (blki=0; blki < b.tx_cnt; blki++) {
+            //    ;
+            //}
 
             blk_cnt++;
             printf("block: %d\n", blk_cnt);

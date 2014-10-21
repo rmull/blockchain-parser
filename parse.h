@@ -23,6 +23,10 @@ enum parse_tx_state {
     P_TX_LOCKTIME
 };
 
+#define VAR_INT_2BYTE   0xFD
+#define VAR_INT_4BYTE   0xFE
+#define VAR_INT_8BYTE   0xFF
+
 void parse(int blkfd, off_t sz);
 
 #endif

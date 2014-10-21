@@ -1,7 +1,7 @@
 all: parse
 
 parse: main.o parse.o
-	$(CC) main.o parse.o -o parser
+	$(CC) -O2 main.o parse.o -o parser
 
 main.o:
 	$(CC) -c main.c 
