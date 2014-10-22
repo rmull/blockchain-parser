@@ -71,13 +71,14 @@ parse_block_print(struct block *b)
     printf("size: %d\n", b->size);
     printf("version: %d\n", b->version);
     printf("prev block: ");
-    for (i=0; i<HASH_LEN; i++) {
-        printf("%02X", b->prev_block[i]);   /* TODO: Endianness? */
+    /* Print the hashes in the correct endianness */
+    for (i=HASH_LEN-1; i<HASH_LEN; i--) {
+        printf("%02X", b->prev_block[i]);
     }
     printf("\n");
     printf("merkle root: ");
-    for (i=0; i<HASH_LEN; i++) {
-        printf("%02X", b->merkle_root[i]);  /* TODO: Endianness? */
+    for (i=HASH_LEN-1; i<HASH_LEN; i--) {
+        printf("%02X", b->merkle_root[i]);
     }
     printf("\n");
     printf("time: %s\n", timestr);
@@ -174,22 +175,7 @@ parse(int blkfd, off_t sz)
 
         case P_BLK_TXCNT:
 
-            varint = *p;
-            p += 1;
-
-            if (varint < VAR_INT_2BYTE) {
-                b.tx_cnt = varint;
-            } else if (varint == VAR_INT_2BYTE) {
-                b.tx_cnt = (uint64_t)( *(uint16_t *)p );
-                p += 2;
-            } else if (varint == VAR_INT_4BYTE) {
-                b.tx_cnt = (uint64_t)( *(uint32_t *)p );
-                p += 4;
-            } else if (varint == VAR_INT_8BYTE) {
-                b.tx_cnt = (uint64_t)( *(uint64_t *)p );
-                p += 8;
-            }
-            //b.tx_cnt = parse_varint(p);
+            b.tx_cnt = parse_varint(p);
 
             p_tx_s = P_TX_VERSION;
             p_blk_s = P_BLK_TX;
