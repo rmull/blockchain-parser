@@ -3,8 +3,6 @@
 
 #include <stdint.h>
 
-#include "var_int.h"
-
 /* 
  * All information was found at
  * https://en.bitcoin.it/wiki/Protocol_specification#block
@@ -33,25 +31,21 @@ enum magic_net {
 #define TIME_LEN        4
 #define DIFFICULTY_LEN  4
 #define NONCE_LEN       4
-
-/* Describes an outpoint from a bitcoin transaction */
-struct outpoint {
-
-    /* The hash of the referenced transaction */
-    uint8_t hash[HASH_LEN];
-
-    /* The index of the specific output in the transaction. First is 0, etc */
-    uint32_t index;
-};
+#define INDEX_LEN       4
+#define VALUE_LEN       8
+#define SEQUENCE_LEN    4
 
 /* Describes an input to a bitcoin transaction */
 struct tx_input {
 
-    /* The previous outpoint transaction reference as an outpoint structure */
-    struct outpoint previous_outpoint;
+    /* The hash of the previous transaction output */
+    uint8_t prev_hash[HASH_LEN];
+
+    /* The index of the specific output in the previous transaction */
+    uint32_t index;
 
     /* The length of the signature script */
-    uint8_t script_len[VAR_INT];
+    uint64_t script_len;
 
     /* Computational script for confirming transaction authorization */
     uint8_t *script;
@@ -70,10 +64,10 @@ struct tx_input {
 struct tx_output {
 
     /* Transaction value */
-    int64_t value;
+    uint64_t value;
 
     /* Length of the pk_script */
-    uint8_t script_len[VAR_INT];
+    uint64_t script_len;
 
     /*
      * Usually contains the public key as a bitcoin script setting up
@@ -92,45 +86,19 @@ struct tx {
     uint32_t version;
 
     /* Number of transaction inputs */
-    uint8_t tx_in_cnt[VAR_INT];
+    uint64_t txin_cnt;
 
     /* A list of 1 or more transaction inputs or sources for coins */
-    struct tx_input tx_in;
+    struct tx_input txin;
 
     /* Number of transaction outputs */
-    uint8_t tx_out_count[VAR_INT];
+    uint64_t txout_cnt;
 
     /* A list of 1 or more transaction outputs or destinations for coins */
-    struct tx_output tx_out;
+    struct tx_output txout;
 
     /* Block number or timestamp at which this transaction is locked */
     uint32_t lock_time;
-
-};
-
-/* Format of a bitcoin network message */
-struct msg {
-    
-    /*
-     * Magic value indicating message origin network and used to seek to next
-     * message when stream state is unknown
-     */
-    uint32_t magic;
-
-    /*
-     * ASCII string identifying the packet content, NULL padded (non-NULL
-     * padding results in packet rejected)
-     */
-    char command[CMD_LEN];
-
-    /* Length of payload in bytes */
-    uint32_t length;
-
-    /* First 4 bytes of sha256(sha256(payload)) */
-    uint32_t checksum;
-
-    /* Message payload data */
-    uint8_t *payload;
 };
 
 /* Format for a block in a bitcoin blockchain */

@@ -8,7 +8,7 @@ enum parse_blk_state {
     P_BLK_PREV,
     P_BLK_MERKLE,
     P_BLK_TIME,
-    P_BLK_DIFFICULTY,
+    P_BLK_BITS,
     P_BLK_NONCE,
     P_BLK_TXCNT,
     P_BLK_TX
@@ -21,6 +21,20 @@ enum parse_tx_state {
     P_TX_TXOUT_CNT,
     P_TX_TXOUT,
     P_TX_LOCKTIME
+};
+
+enum parse_txin_state {
+    P_TXIN_PREV_HASH,
+    P_TXIN_INDEX,
+    P_TXIN_SCRIPT_LEN,
+    P_TXIN_SCRIPT,
+    P_TXIN_SEQUENCE
+};
+
+enum parse_txout_state {
+    P_TXOUT_VALUE,
+    P_TXOUT_SCRIPT_LEN,
+    P_TXOUT_SCRIPT
 };
 
 #define VAR_INT_2BYTE   0xFD

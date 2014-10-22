@@ -28,7 +28,7 @@ main(int argc, char *argv[])
         ret = 1;
         goto exit;
     }
-    printf("Parsing from %s\n", BLOCKCHAIN_PATH);
+
     chdir(BLOCKCHAIN_PATH);
 
     do {

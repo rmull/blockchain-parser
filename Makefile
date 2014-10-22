@@ -1,7 +1,11 @@
-all: parse
+CC = gcc
+CFLAGS = -Wall -g
+TARGET = parse
 
-parse: main.o parse.o
-	$(CC) -O2 main.o parse.o -o parser
+all: $(TARGET)
+
+$(TARGET): main.o parse.o
+	$(CC) $(CFLAGS) -o $(TARGET) main.o parse.o
 
 main.o:
 	$(CC) -c main.c 
