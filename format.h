@@ -34,6 +34,7 @@ enum magic_net {
 #define INDEX_LEN       4
 #define VALUE_LEN       8
 #define SEQUENCE_LEN    4
+#define LOCKTIME_LEN    4
 
 /* Describes an input to a bitcoin transaction */
 struct tx_input {

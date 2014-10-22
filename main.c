@@ -54,7 +54,7 @@ main(int argc, char *argv[])
                     if (ret < 0) {
                         perror("stat");
                     } else {
-                        printf("%s\n", dp->d_name);
+                        /* printf("%s\n", dp->d_name); */
                         parse(fd, sb.st_size);
                     }
                     close(fd);

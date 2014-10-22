@@ -35,28 +35,26 @@ parse_is_magic(uint32_t m)
     return mn;
 }
 
-uint64_t
-parse_varint(uint8_t *p)
+uint8_t
+parse_varint(uint8_t *p, uint64_t *dest)
 {
-    uint64_t ret;
     uint8_t varint = *p;
-
-    p += 1;
+    uint8_t mv = 1;
 
     if (varint < VAR_INT_2BYTE) {
-        ret = (uint64_t)varint;
+        *dest = (uint64_t)varint;
     } else if (varint == VAR_INT_2BYTE) {
-        ret = (uint64_t)( *(uint16_t *)p );
-        p += 2;
+        *dest = (uint64_t)( *(uint16_t *)(p+1) );
+        mv += 2;
     } else if (varint == VAR_INT_4BYTE) {
-        ret = (uint64_t)( *(uint32_t *)p );
-        p += 4;
+        *dest = (uint64_t)( *(uint32_t *)(p+1) );
+        mv += 4;
     } else if (varint == VAR_INT_8BYTE) {
-        ret = (uint64_t)( *(uint64_t *)p );
-        p += 8;
+        *dest = (uint64_t)( *(uint64_t *)(p+1) );
+        mv += 8;
     }
 
-    return ret;
+    return mv;
 }
 
 void
@@ -69,9 +67,17 @@ parse_txin_print(struct tx_input *i)
         printf("%02X", i->prev_hash[j]);
     }
     printf("\n");
-    printf("    index: %u\n", i->index);
+    printf("    index: %d\n", i->index);
     printf("    script len: %lu\n", i->script_len);
-    printf("    sequence: %u\n", i->sequence);
+    printf("    sequence: %X\n", i->sequence);
+    printf("\n");
+}
+
+void
+parse_txout_print(struct tx_output *o)
+{
+    printf("    value: %lu\n", o->value);
+    printf("    script len: %lu\n", o->script_len);
     printf("\n");
 }
 
@@ -81,15 +87,7 @@ parse_tx_print(struct tx *t)
     printf("  version: %u\n", t->version);
     printf("  txin cnt: %lu\n", t->txin_cnt);
     printf("  txout cnt: %lu\n", t->txout_cnt);
-    printf("  lock time: %d\n", t->lock_time);
-    printf("\n");
-}
-
-void
-parse_txout_print(struct tx_output *o)
-{
-    printf("    value: %lu\n", o->value);
-    printf("    script len: %lu\n", o->script_len);
+    printf("  lock time: %u\n", t->lock_time);
     printf("\n");
 }
 
@@ -124,10 +122,12 @@ parse_block_print(struct block *b)
     printf("\n");
 }
 
-void
+uint8_t *
 parse_txin(uint8_t *p, uint64_t count)
 {
     struct tx_input i;
+
+    p_txin_s = P_TXIN_PREV_HASH;
 
     while (count > 0) {
 
@@ -146,12 +146,12 @@ parse_txin(uint8_t *p, uint64_t count)
             break;
 
         case P_TXIN_SCRIPT_LEN:
-            i.script_len = parse_varint(p);
+            p += parse_varint(p, &(i.script_len));
             p_txin_s = P_TXIN_SCRIPT;
             break;
 
         case P_TXIN_SCRIPT:
-            /* TODO: Skip the script until we have malloc */
+            i.script = p;
             p += i.script_len;
             p_txin_s = P_TXIN_SEQUENCE;
             break;
@@ -169,12 +169,16 @@ parse_txin(uint8_t *p, uint64_t count)
             break;
         }
     }
+
+    return p;
 }
 
-void
+uint8_t *
 parse_txout(uint8_t *p, uint64_t count)
 {
     struct tx_output o;
+
+    p_txout_s = P_TXOUT_VALUE;
 
     while (count > 0) {
 
@@ -187,12 +191,12 @@ parse_txout(uint8_t *p, uint64_t count)
             break;
 
         case P_TXOUT_SCRIPT_LEN:
-            o.script_len = parse_varint(p);
+            p += parse_varint(p, &(o.script_len));
             p_txout_s = P_TXOUT_SCRIPT;
             break;
 
         case P_TXOUT_SCRIPT:
-            /* TODO: Skip the script until we have malloc */
+            o.script = p;
             p += o.script_len;
             parse_txout_print(&o);
             count--;
@@ -203,63 +207,62 @@ parse_txout(uint8_t *p, uint64_t count)
             break;
         }
     }
+
+    return p;
 }
 
-void
+uint8_t *
 parse_tx(uint8_t *p, uint64_t count)
 {
     struct tx t;
+
+    p_tx_s = P_TX_VERSION;
 
     while (count > 0) {
         switch (p_tx_s) {
 
         case P_TX_VERSION:
-
             t.version = *(uint32_t *)p;
             p += VERSION_LEN;
             p_tx_s = P_TX_TXIN_CNT;
             break;
 
         case P_TX_TXIN_CNT:
-
-            t.txin_cnt = parse_varint(p);
-            p_txin_s = P_TXIN_PREV_HASH;
+            p += parse_varint(p, &(t.txin_cnt));
             p_tx_s = P_TX_TXIN;
             break;
 
         case P_TX_TXIN:
-
             /* Process each input in this transaction */
-            parse_txin(p, t.txin_cnt);
-
+            p = parse_txin(p, t.txin_cnt);
             p_tx_s = P_TX_TXOUT_CNT;
-
             break;
 
         case P_TX_TXOUT_CNT:
-
-            t.txout_cnt = parse_varint(p);
-            p_txout_s = P_TXOUT_VALUE;
+            p += parse_varint(p, &(t.txout_cnt));
             p_tx_s = P_TX_TXOUT;
             break;
 
         case P_TX_TXOUT:
-
             /* Process each output in this transaction */
-            parse_txout(p, t.txout_cnt);
-
+            p = parse_txout(p, t.txout_cnt);
             p_tx_s = P_TX_LOCKTIME;
             break;
 
         case P_TX_LOCKTIME:
-            p_tx_s = P_TX_VERSION;
+            t.lock_time = *(uint32_t *)p;
+            p += LOCKTIME_LEN;
+            parse_tx_print(&t);
             count--;
+            p_tx_s = P_TX_VERSION;
             break;
 
         default:
             break;
         }
     }
+
+    return p;
 }
 
 void
@@ -290,69 +293,58 @@ parse_block(uint8_t *p, uint8_t *end)
             break;
 
         case P_BLK_SZ:
-
             b.size = *(uint32_t *)p;
             p += BLKSZ_LEN;
             p_blk_s = P_BLK_VERSION;
-
             break;
 
         case P_BLK_VERSION:
-
             b.version = *(uint32_t *)p;
             p += VERSION_LEN;
             p_blk_s = P_BLK_PREV;
-
             break;
 
         case P_BLK_PREV:
             memcpy(&b.prev_block, p, HASH_LEN);
             p += HASH_LEN;
             p_blk_s = P_BLK_MERKLE;
-
             break;
 
         case P_BLK_MERKLE:
             memcpy(&b.merkle_root, p, HASH_LEN);
             p += HASH_LEN;
             p_blk_s = P_BLK_TIME;
-
             break;
 
         case P_BLK_TIME:
             b.time = *(uint32_t *)p;
             p += TIME_LEN;
             p_blk_s = P_BLK_BITS;
-
             break;
 
         case P_BLK_BITS:
             b.bits = *(uint32_t *)p;
             p += DIFFICULTY_LEN;
             p_blk_s = P_BLK_NONCE;
-
             break;
 
         case P_BLK_NONCE:
             b.nonce = *(uint32_t *)p;
             p += NONCE_LEN;
             p_blk_s = P_BLK_TXCNT;
-
             break;
 
         case P_BLK_TXCNT:
-            b.tx_cnt = parse_varint(p);
-            p_tx_s = P_TX_VERSION;
+            p += parse_varint(p, &(b.tx_cnt));
             p_blk_s = P_BLK_TX;
-
             break;
 
         case P_BLK_TX:
             /* Process each transaction in this block */
-            parse_tx(p, b.tx_cnt);
+            p = parse_tx(p, b.tx_cnt);
 
-            blk_cnt++;
             printf("block: %d\n", blk_cnt);
+            blk_cnt++;
             parse_block_print(&b);
             p_blk_s = P_BLK_MAGIC;
 
