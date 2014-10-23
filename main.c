@@ -6,6 +6,7 @@
 #include <dirent.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "format.h"
 #include "parse.h"
