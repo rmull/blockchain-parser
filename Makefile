@@ -1,17 +1,15 @@
-CC = gcc
 CFLAGS = -Wall -g
+SRC = main.c parse.c
+OBJ = ${SRC:.c=.o}
 TARGET = parse
 
-all: $(TARGET)
+all: ${TARGET}
 
-$(TARGET): main.o parse.o
-	$(CC) $(CFLAGS) -o $(TARGET) main.o parse.o
+.c.o:
+	@${CC} -c ${CFLAGS} $<
 
-main.o:
-	$(CC) -c main.c 
-
-parse.o:
-	$(CC) -c parse.c
+${TARGET}: ${OBJ}
+	@${CC} -o $@ ${OBJ}
 
 clean:
-	rm -f *.o parser
+	@rm -f ${TARGET} ${OBJ}
