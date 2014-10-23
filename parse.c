@@ -17,6 +17,9 @@ enum parse_tx_state p_tx_s = P_TX_VERSION;
 enum parse_txin_state p_txin_s = P_TXIN_PREV_HASH;
 enum parse_txout_state p_txout_s = P_TXOUT_VALUE;
 
+/*
+ * Map the magic number into network enumeration
+ */
 enum magic_net
 parse_is_magic(uint32_t m)
 {
@@ -35,6 +38,9 @@ parse_is_magic(uint32_t m)
     return mn;
 }
 
+/*
+ * Process a var_int starting at p into dest
+ */
 uint8_t
 parse_varint(uint8_t *p, uint64_t *dest)
 {
@@ -57,6 +63,9 @@ parse_varint(uint8_t *p, uint64_t *dest)
     return mv;
 }
 
+/*
+ * Print what we know about a given tx_input
+ */
 void
 parse_txin_print(struct tx_input *i)
 {
@@ -73,6 +82,9 @@ parse_txin_print(struct tx_input *i)
     printf("\n");
 }
 
+/*
+ * Print what we know about a given tx_output
+ */
 void
 parse_txout_print(struct tx_output *o)
 {
@@ -81,6 +93,9 @@ parse_txout_print(struct tx_output *o)
     printf("\n");
 }
 
+/*
+ * Print what we know about a given bitcoin transaction
+ */
 void
 parse_tx_print(struct tx *t)
 {
@@ -91,6 +106,9 @@ parse_tx_print(struct tx *t)
     printf("\n");
 }
 
+/*
+ * Print what we know about a block in the blockchain
+ */
 void
 parse_block_print(struct block *b)
 {
@@ -122,6 +140,9 @@ parse_block_print(struct block *b)
     printf("\n");
 }
 
+/*
+ * Parse count tx_inputs from the stream starting at p
+ */
 uint8_t *
 parse_txin(uint8_t *p, uint64_t count)
 {
@@ -173,6 +194,9 @@ parse_txin(uint8_t *p, uint64_t count)
     return p;
 }
 
+/*
+ * Parse count tx_outputs from the stream starting at p
+ */
 uint8_t *
 parse_txout(uint8_t *p, uint64_t count)
 {
@@ -211,6 +235,9 @@ parse_txout(uint8_t *p, uint64_t count)
     return p;
 }
 
+/*
+ * Parse count transactions from the stream starting at p
+ */
 uint8_t *
 parse_tx(uint8_t *p, uint64_t count)
 {
@@ -265,6 +292,9 @@ parse_tx(uint8_t *p, uint64_t count)
     return p;
 }
 
+/*
+ * Parse a series of blockchain blocks between p and end
+ */
 void
 parse_block(uint8_t *p, uint8_t *end)
 {
@@ -343,8 +373,7 @@ parse_block(uint8_t *p, uint8_t *end)
             /* Process each transaction in this block */
             p = parse_tx(p, b.tx_cnt);
 
-            printf("block: %d\n", blk_cnt);
-            blk_cnt++;
+            printf("block: %d\n", blk_cnt++);
             parse_block_print(&b);
             p_blk_s = P_BLK_MAGIC;
 
@@ -371,5 +400,6 @@ parse(int blkfd, off_t sz)
     /* Process each block in this file */
     parse_block(p, blk+sz);
 
+    /* Drop the mapping */
     munmap(blk, sz);
 }
