@@ -1,10 +1,10 @@
-## Bitcoin Blockchain Parser
+# Bitcoin Blockchain Parser
 
 I am writing this to help me understand the blockchain format. I am looking
 only at documentation, rather than other source codebases, because I think an
 independent approach to a problem can be interesting.
 
-# TODO:
+## TODO:
 
 * Rework the input to the parser so that it expects a byte stream, rather than
   a datadir. This might make it more useful if ever turned loose on live data.
