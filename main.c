@@ -56,7 +56,7 @@ main(int argc, char *argv[])
                                 perror("stat");
                             } else {
                                 /* printf("%s\n", dp->d_name); */
-                                parse(fd, sb.st_size);
+                                parse(fd, (uint64_t)sb.st_size);
                             }
                             close(fd);
                         }

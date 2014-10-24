@@ -41,6 +41,6 @@ enum parse_txout_state {
 #define VAR_INT_4BYTE   0xFE
 #define VAR_INT_8BYTE   0xFF
 
-void parse(int blkfd, off_t sz);
+uint64_t parse(int blkfd, uint64_t sz);
 
 #endif

@@ -142,45 +142,50 @@ parse_block_print(struct block *b)
 
 /*
  * Parse count tx_inputs from the stream starting at p
+ * Return the number of bytes processed
  */
-uint8_t *
-parse_txin(uint8_t *p, uint64_t count)
+uint64_t
+parse_txin(uint8_t *src, uint64_t count)
 {
+    uint8_t *p = src;
     struct tx_input i;
+    uint64_t skip = 0;
+    uint64_t done = 0;
 
     p_txin_s = P_TXIN_PREV_HASH;
 
     while (count > 0) {
 
+        p += skip;
+
         switch (p_txin_s) {
 
         case P_TXIN_PREV_HASH:
-            memcpy(&i.prev_hash, p, HASH_LEN);
-            p += HASH_LEN;
+            memcpy((void *)&i.prev_hash, p, HASH_LEN);
+            skip = HASH_LEN;
             p_txin_s = P_TXIN_INDEX;
             break;
 
         case P_TXIN_INDEX:
             i.index = *(uint32_t *)p;
-            p += INDEX_LEN;
+            skip = INDEX_LEN;
             p_txin_s = P_TXIN_SCRIPT_LEN;
             break;
 
         case P_TXIN_SCRIPT_LEN:
-            p += parse_varint(p, &(i.script_len));
+            skip = (uint64_t)parse_varint(p, &(i.script_len));
             p_txin_s = P_TXIN_SCRIPT;
             break;
 
         case P_TXIN_SCRIPT:
             i.script = p;
-            p += i.script_len;
+            skip = i.script_len;
             p_txin_s = P_TXIN_SEQUENCE;
             break;
 
         case P_TXIN_SEQUENCE:
-
             i.sequence = *(uint32_t *)p;
-            p += SEQUENCE_LEN;
+            skip = SEQUENCE_LEN;
             parse_txin_print(&i);
             count--;
             p_txin_s = P_TXIN_PREV_HASH;
@@ -189,39 +194,47 @@ parse_txin(uint8_t *p, uint64_t count)
         default:
             break;
         }
+
+        done += skip;
     }
 
-    return p;
+    return done;
 }
 
 /*
  * Parse count tx_outputs from the stream starting at p
+ * Return the number of bytes processed
  */
-uint8_t *
-parse_txout(uint8_t *p, uint64_t count)
+uint64_t
+parse_txout(uint8_t *src, uint64_t count)
 {
+    uint8_t *p = src;
     struct tx_output o;
+    uint64_t skip = 0;
+    uint64_t done = 0;
 
     p_txout_s = P_TXOUT_VALUE;
 
     while (count > 0) {
 
+        p += skip;
+
         switch (p_txout_s) {
 
         case P_TXOUT_VALUE:
             o.value = *(uint64_t *)p;
-            p += VALUE_LEN;
+            skip = VALUE_LEN;
             p_txout_s = P_TXOUT_SCRIPT_LEN;
             break;
 
         case P_TXOUT_SCRIPT_LEN:
-            p += parse_varint(p, &(o.script_len));
+            skip = (uint64_t)parse_varint(p, &(o.script_len));
             p_txout_s = P_TXOUT_SCRIPT;
             break;
 
         case P_TXOUT_SCRIPT:
             o.script = p;
-            p += o.script_len;
+            skip = o.script_len;
             parse_txout_print(&o);
             count--;
             p_txout_s = P_TXOUT_VALUE;
@@ -230,55 +243,64 @@ parse_txout(uint8_t *p, uint64_t count)
         default:
             break;
         }
+
+        done += skip;
     }
 
-    return p;
+    return done;
 }
 
 /*
  * Parse count transactions from the stream starting at p
+ * Return number of bytes processed
  */
-uint8_t *
-parse_tx(uint8_t *p, uint64_t count)
+uint64_t
+parse_tx(uint8_t *src, uint64_t count)
 {
+    uint8_t *p = src;
     struct tx t;
+    uint64_t skip = 0;
+    uint64_t done = 0;
 
     p_tx_s = P_TX_VERSION;
 
     while (count > 0) {
+
+        p += skip;
+
         switch (p_tx_s) {
 
         case P_TX_VERSION:
             t.version = *(uint32_t *)p;
-            p += VERSION_LEN;
+            skip = VERSION_LEN;
             p_tx_s = P_TX_TXIN_CNT;
             break;
 
         case P_TX_TXIN_CNT:
-            p += parse_varint(p, &(t.txin_cnt));
+            skip = (uint64_t)parse_varint(p, &(t.txin_cnt));
             p_tx_s = P_TX_TXIN;
             break;
 
         case P_TX_TXIN:
             /* Process each input in this transaction */
-            p = parse_txin(p, t.txin_cnt);
+            skip = parse_txin(p, t.txin_cnt);
             p_tx_s = P_TX_TXOUT_CNT;
             break;
 
         case P_TX_TXOUT_CNT:
-            p += parse_varint(p, &(t.txout_cnt));
+            skip = (uint64_t)parse_varint(p, &(t.txout_cnt));
             p_tx_s = P_TX_TXOUT;
             break;
 
         case P_TX_TXOUT:
             /* Process each output in this transaction */
-            p = parse_txout(p, t.txout_cnt);
+            skip = parse_txout(p, t.txout_cnt);
             p_tx_s = P_TX_LOCKTIME;
             break;
 
         case P_TX_LOCKTIME:
             t.lock_time = *(uint32_t *)p;
-            p += LOCKTIME_LEN;
+            skip = LOCKTIME_LEN;
             parse_tx_print(&t);
             count--;
             p_tx_s = P_TX_VERSION;
@@ -287,21 +309,31 @@ parse_tx(uint8_t *p, uint64_t count)
         default:
             break;
         }
+
+        done += skip;
     }
 
-    return p;
+    return done;
 }
 
 /*
  * Parse a series of blockchain blocks between p and end
+ * Return the number of bytes processed
  */
-void
-parse_block(uint8_t *p, uint8_t *end)
+uint64_t
+parse_block(uint8_t *src, uint64_t sz)
 {
+    uint8_t *p = src;
     struct block b;
+    uint64_t skip = 0;
+    uint64_t done = 0;
 
     /* Look for different patterns depending on our state */
-    while (p < end) {
+    while (sz > skip) {
+
+        p += skip;
+        sz -= skip;
+
         switch (p_blk_s) {
 
         /* Look for the magic number */
@@ -312,66 +344,65 @@ parse_block(uint8_t *p, uint8_t *end)
 
             /* If blk[i] starts the magic bytes, we can skip ahead */
             if (parse_is_magic(b.magic) != MAGIC_NET_NONE) {
-                p += MAGIC_LEN;
+                skip = MAGIC_LEN;
                 p_blk_s = P_BLK_SZ;
 
-            /* No magic number at this byte */
+            /* No magic number at this byte, check the next one */
             } else {
-                p++;
+                skip = 1;
             }
-
             break;
 
         case P_BLK_SZ:
             b.size = *(uint32_t *)p;
-            p += BLKSZ_LEN;
+            skip = BLKSZ_LEN;
             p_blk_s = P_BLK_VERSION;
             break;
 
         case P_BLK_VERSION:
             b.version = *(uint32_t *)p;
-            p += VERSION_LEN;
+            skip = VERSION_LEN;
             p_blk_s = P_BLK_PREV;
             break;
 
         case P_BLK_PREV:
-            memcpy(&b.prev_block, p, HASH_LEN);
-            p += HASH_LEN;
+            memcpy((void *)&b.prev_block, p, HASH_LEN);
+            skip = HASH_LEN;
             p_blk_s = P_BLK_MERKLE;
             break;
 
         case P_BLK_MERKLE:
-            memcpy(&b.merkle_root, p, HASH_LEN);
-            p += HASH_LEN;
+            memcpy((void *)&b.merkle_root, p, HASH_LEN);
+            skip = HASH_LEN;
             p_blk_s = P_BLK_TIME;
             break;
 
         case P_BLK_TIME:
             b.time = *(uint32_t *)p;
-            p += TIME_LEN;
+            skip = TIME_LEN;
             p_blk_s = P_BLK_BITS;
             break;
 
         case P_BLK_BITS:
             b.bits = *(uint32_t *)p;
-            p += DIFFICULTY_LEN;
+            skip = DIFFICULTY_LEN;
             p_blk_s = P_BLK_NONCE;
             break;
 
         case P_BLK_NONCE:
             b.nonce = *(uint32_t *)p;
-            p += NONCE_LEN;
+            skip = NONCE_LEN;
             p_blk_s = P_BLK_TXCNT;
             break;
 
         case P_BLK_TXCNT:
-            p += parse_varint(p, &(b.tx_cnt));
+            skip = (uint64_t)parse_varint(p, &(b.tx_cnt));
             p_blk_s = P_BLK_TX;
             break;
 
         case P_BLK_TX:
             /* Process each transaction in this block */
-            p = parse_tx(p, b.tx_cnt);
+            skip = parse_tx(p, b.tx_cnt);
 
             printf("block: %d\n", blk_cnt++);
             parse_block_print(&b);
@@ -382,24 +413,27 @@ parse_block(uint8_t *p, uint8_t *end)
         default:
             break;
         }
+
+        done += skip;
     }
+
+    return done;
 }
 
-void
-parse(int blkfd, off_t sz)
+uint64_t
+parse(int blkfd, uint64_t sz)
 {
     uint8_t *blk;
-    uint8_t *p;
+    uint64_t done;
 
     /* Map the input file */
     blk = (uint8_t *)mmap(NULL, sz, PROT_READ, MAP_PRIVATE, blkfd, 0);
 
-    /* Initialize our seek pointer */
-    p = blk;
-    
     /* Process each block in this file */
-    parse_block(p, blk+sz);
+    done = parse_block(blk, sz);
 
     /* Drop the mapping */
     munmap(blk, sz);
+
+    return done;
 }
