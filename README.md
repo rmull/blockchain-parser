@@ -6,8 +6,9 @@ independent approach to a problem can be interesting.
 
 ## TODO:
 
-* Rework the input to the parser so that it expects a byte stream, rather than
-  a datadir. This might make it more useful if ever turned loose on live data.
+* Currently, the parser will break if there is a truncated blockchain
+  encountered. The subparsing routines need to be able to retain their state
+  and return to the caller while waiting for more data to be delivered.
 * Assemble the data into a useful data structure rather than just printing the
   contents of each block.
 * Create some type of interface that will allow a user to work with the
